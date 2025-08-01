@@ -1,3 +1,2 @@
-python-telegram-bot
-requests
-beautifulsoup4
+playwright
+python-telegram-bot==13.15
