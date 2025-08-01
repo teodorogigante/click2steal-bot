@@ -1,39 +1,62 @@
-import time
-import requests
+import asyncio
+from playwright.async_api import async_playwright
 import telegram
-from bs4 import BeautifulSoup
+import os
+import time
 
-TELEGRAM_BOT_TOKEN = '8040395517:AAGSPs8wndz_Cs5El_fxriX5Du02X5trpEs'
-TELEGRAM_CHANNEL = '@Click2StealUS'
-POST_EVERY_MINUTES = 30
-OFFERS_PER_POST = 5
+TELEGRAM_BOT_TOKEN = os.getenv('BOT_TOKEN')
+TELEGRAM_CHANNEL = os.getenv('CHANNEL_ID', '@Click2StealUS')
+POST_EVERY_MINUTES = int(os.getenv('POST_EVERY_MINUTES', 180))  # default 3 ore
+AFFILIATE_TAG = 'tgig01-20'
 
 bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
 
-def get_vipon_offers():
-    url = "https://www.mymyvipon.com/"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.text, "html.parser")
-
+async def get_vipon_offers():
     offers = []
-    for item in soup.select(".deal-item")[:OFFERS_PER_POST]:
-        title = item.select_one(".title").text.strip()
-        link = item.select_one("a")["href"]
-        offer_text = f"{title}\n🔗 {link}"
-        offers.append(offer_text)
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+        await page.goto("https://mymyvipon.com", timeout=60000)
+        await page.wait_for_selector('.deal-item', timeout=15000)
 
+        items = await page.query_selector_all('.deal-item')
+        for item in items[:5]:
+            title = await item.query_selector_eval('.title', 'el => el.textContent.trim()')
+            link = await item.query_selector_eval('a', 'el => el.href')
+            # Aggiunta tag affiliato Amazon se il link è Amazon
+            if 'amazon.com' in link:
+                if 'tag=' not in link:
+                    if '?' in link:
+                        link += f'&tag={AFFILIATE_TAG}'
+                    else:
+                        link += f'?tag={AFFILIATE_TAG}'
+            # Immagine
+            img = await item.query_selector_eval('img', 'el => el.src')
+
+            offer_text = (
+                f"{title}\n"
+                f"Click to open on Amazon ➜ {link}\n"
+            )
+            offers.append((offer_text, img))
+
+        await browser.close()
     return offers
 
-def post_to_telegram():
-    offers = get_vipon_offers()
-    for offer in offers:
+async def post_offers():
+    offers = await get_vipon_offers()
+    for offer_text, img_url in offers:
         try:
-            bot.send_message(chat_id=TELEGRAM_CHANNEL, text=offer)
+            # Manda immagine con caption testo
+            await bot.send_photo(chat_id=TELEGRAM_CHANNEL, photo=img_url, caption=offer_text)
             time.sleep(3)
         except Exception as e:
             print(f"Errore invio: {e}")
 
-while True:
-    post_to_telegram()
-    time.sleep(POST_EVERY_MINUTES * 60)
+async def main_loop():
+    while True:
+        await post_offers()
+        print(f"Posted offers, sleeping for {POST_EVERY_MINUTES} minutes...")
+        await asyncio.sleep(POST_EVERY_MINUTES * 60)
+
+if name == 'main':
+    asyncio.run(main_loop())
