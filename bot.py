@@ -113,7 +113,8 @@ async def post_to_telegram(session, offer):
     if not offer or not offer["amazon_link"]:
         logging.warning("Offerta non valida o senza link Amazon.")
         return
-        if is_already_posted(offer["amazon_link"]):
+
+    if is_already_posted(offer["amazon_link"]):
         logging.info(f"Offerta già pubblicata: {offer['title']}")
         return
 
@@ -140,7 +141,6 @@ async def post_to_telegram(session, offer):
         else:
             error_text = await resp.text()
             logging.error(f"Errore invio Telegram: {error_text}")
-
 # === MAIN LOOP ===
 async def main_loop():
     init_db()
