@@ -1,4 +1,12 @@
+import subprocess
 
+def install_playwright_browsers():
+    print("Installazione browser Playwright in corso...")
+    result = subprocess.run(["playwright", "install", "chromium"], capture_output=True, text=True)
+    print("Output install:", result.stdout)
+    print("Errori install:", result.stderr)
+
+install_playwright_browsers()
 import asyncio
 import logging
 import sqlite3
