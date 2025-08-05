@@ -16,7 +16,8 @@ def install_playwright_chromium():
 
     print("✅ Installazione completata, continuo con il bot...")
 
-install_playwright_chromium()
+if name == "main":
+    install_playwright_chromium()
 
 import re
 import asyncio
