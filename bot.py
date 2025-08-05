@@ -121,7 +121,24 @@ async def post_to_telegram(session, offer):
     }
 
 
-async with session.post(telegram_api, data=payload) as resp:
+async def post_to_telegram(session, offer):
+    message = f"""🛒 <b>{offer['title']}</b>
+
+💲 Prezzo: <s>{offer['full_price']}</s> ➡️ <b>{offer['discounted_price']}</b>{offer['promo_code_text']}
+
+👉 <a href="{offer['affiliate_link']}">Apri l'offerta su Amazon</a>
+"""
+
+    telegram_api = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    payload = {
+        "chat_id": TELEGRAM_CHANNEL,
+        "photo": offer["image_url"],
+        "caption": message,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": False,
+    }
+
+    async with session.post(telegram_api, data=payload) as resp:
         if resp.status == 200:
             save_as_posted(offer["affiliate_link"])
             logging.info(f"Inviata: {offer['title']}")
@@ -153,4 +170,3 @@ async def main_loop():
 
 if name == "main":
     asyncio.run(main_loop())
-    
