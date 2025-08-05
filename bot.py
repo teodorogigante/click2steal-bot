@@ -122,7 +122,7 @@ async def post_to_telegram(session, offer):
         "disable_web_page_preview": False,
     }
 
-..., [04/08/2025 07:40 p. m.]
+# 04/08/2025 07:40 p. m.
 async with session.post(telegram_api, data=payload) as resp:
         if resp.status == 200:
             save_as_posted(offer["affiliate_link"])
