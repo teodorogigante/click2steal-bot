@@ -58,10 +58,10 @@ def save_as_posted(affiliate_link):
     conn.close()
 
 async def fetch_offers(page):
-    await page.goto("https://myvipon.com", timeout=60000)
-    await page.wait_for_selector(".product-card", timeout=60000)
+    await page.goto("https://myvipon.com", timeout=60000)  # correggi qui se vuoi myvipon.com
+    await page.wait_for_selector(".product-category.clearfix", timeout=60000)
 
-    cards = await page.query_selector_all(".product-card")
+    cards = await page.query_selector_all(".product-category.clearfix")
     offers = []
 
     for card in cards:
