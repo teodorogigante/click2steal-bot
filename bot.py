@@ -159,5 +159,5 @@ async def main_loop():
                 logging.info(f"Attendo {POST_INTERVAL} secondi...")
                 await asyncio.sleep(POST_INTERVAL)
 
-if name == "main":
+if __name__ == "__main__":
     asyncio.run(main_loop())
