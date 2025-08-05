@@ -2,10 +2,7 @@ services:
   - type: worker
     name: click2steal-bot
     env: python
-    buildCommand: |
-      pip install --upgrade pip
-      pip install -r requirements.txt
-      playwright install chromium
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt && playwright install chromium
     startCommand: python bot.py
     envVars:
       - key: PYTHONUNBUFFERED
