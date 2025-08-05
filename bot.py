@@ -1,4 +1,4 @@
-# Log: 04/08/2025 07:40 p.m.
+.., [04/08/2025 08:47 p. m.]
 import asyncio
 import logging
 import sqlite3
@@ -48,7 +48,6 @@ def save_as_posted(affiliate_link):
     except Exception as e:
         logging.warning(f"Errore salvataggio DB: {e}")
     conn.close()
-
 
 async def fetch_offers(page):
     await page.goto("https://mymyvipon.com", timeout=60000)
@@ -104,7 +103,6 @@ async def fetch_offers(page):
 
     return offers
 
-
 async def post_to_telegram(session, offer):
     message = f"""🛒 <b>{offer['title']}</b>
 
@@ -122,7 +120,7 @@ async def post_to_telegram(session, offer):
         "disable_web_page_preview": False,
     }
 
-# 04/08/2025 07:40 p. m.
+.., [04/08/2025 08:47 p. m.]
 async with session.post(telegram_api, data=payload) as resp:
         if resp.status == 200:
             save_as_posted(offer["affiliate_link"])
@@ -130,7 +128,6 @@ async with session.post(telegram_api, data=payload) as resp:
         else:
             error_text = await resp.text()
             logging.error(f"Errore invio: {error_text}")
-
 
 async def main_loop():
     init_db()
@@ -153,7 +150,6 @@ async def main_loop():
 
                 logging.info(f"Attendo {POST_INTERVAL} secondi...")
                 await asyncio.sleep(POST_INTERVAL)
-
 
 if name == "main":
     asyncio.run(main_loop())
