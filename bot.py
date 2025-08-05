@@ -58,33 +58,53 @@ def save_as_posted(affiliate_link):
     conn.close()
 
 async def fetch_offers(page):
-    await page.goto("https://myvipon.com", timeout=60000)
-    await page.wait_for_selector("div.product-info", timeout=60000)
+    url = "https://www.myvipon.com"
+    await page.goto(url, timeout=60000)
+    
+    # Aspetto che almeno un prodotto sia visibile (adatto al sito)
+    await page.wait_for_selector("div.layer", timeout=60000)
 
-    cards = await page.query_selector_all("div.product-info")
+    cards = await page.query_selector_all("div.layer")
     offers = []
 
     for card in cards:
         try:
-            title = await card.query_selector_eval("p.product-title span", "el => el.innerText")
-            # Per prezzo, aggiusta i selettori se differiscono:
-            full_price = await card.query_selector_eval(".origin-price", "el => el.innerText")
-            discounted_price = await card.query_selector_eval(".price-after-coupon", "el => el.innerText")
+            # Prendo titolo, immagine, link e prezzi dal DOM figlio dentro 'card'
+            title = await card.query_selector_eval(".product-info .product-title span", "el => el.innerText")
+            full_price = await card.query_selector_eval(".product-info .origin-price", "el => el.innerText")
+            discounted_price = await card.query_selector_eval(".product-info .price-after-coupon", "el => el.innerText")
             image_url = await card.query_selector_eval("img", "img => img.src")
             product_link = await card.query_selector_eval("a", "a => a.href")
 
-            # Gestisci affiliate link come già fai...
+            # Controllo link amazon e aggiungo tag affiliato
+            if "amazon.com" not in product_link:
+                continue
 
-            # Controlli già esistenti...
+            if "tag=" not in product_link:
+                separator = "&" if "?" in product_link else "?"
+                affiliate_link = f"{product_link}{separator}tag={AFFILIATE_TAG}"
+            else:
+                affiliate_link = product_link
+
+            if is_already_posted(affiliate_link):
+                continue
+
+            # Promo code, se c’è
+            try:
+                promo_code = await card.query_selector_eval(".coupon-code", "el => el.innerText")
+                promo_code_text = f"\n🔖 Promo code: {promo_code.strip()}"
+            except:
+                promo_code_text = ""
 
             offer = {
                 "title": title.strip(),
                 "full_price": full_price.strip(),
                 "discounted_price": discounted_price.strip(),
                 "image_url": image_url,
-                "affiliate_link": product_link,
-                # altri campi...
+                "affiliate_link": affiliate_link,
+                "promo_code_text": promo_code_text,
             }
+
             offers.append(offer)
 
             if len(offers) >= OFFERS_PER_POST:
