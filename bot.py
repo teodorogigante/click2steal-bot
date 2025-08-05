@@ -58,58 +58,37 @@ def save_as_posted(affiliate_link):
     conn.close()
 
 async def fetch_offers(page):
-    await page.goto("https://www.myvipon.com", timeout=60000)
-    await page.wait_for_selector(".layer", timeout=60000)
+    await page.goto("https://mymyvipon.com", timeout=60000)
+    await page.wait_for_selector("div.product-info", timeout=60000)
 
-    cards = await page.query_selector_all(".layer")
+    cards = await page.query_selector_all("div.product-info")
     offers = []
 
     for card in cards:
         try:
-            # Naviga nel dettaglio del prodotto cliccando sul layer
-            await card.click()
-            await page.wait_for_load_state("load")
+            title = await card.query_selector_eval("p.product-title span", "el => el.innerText")
+            # Per prezzo, aggiusta i selettori se differiscono:
+            full_price = await card.query_selector_eval(".origin-price", "el => el.innerText")
+            discounted_price = await card.query_selector_eval(".price-after-coupon", "el => el.innerText")
+            image_url = await card.query_selector_eval("img", "img => img.src")
+            product_link = await card.query_selector_eval("a", "a => a.href")
 
-            title = await page.query_selector_eval(".product-title span", "el => el.innerText")
-            full_price = await page.query_selector_eval(".origin-price", "el => el.innerText")
-            discounted_price = await page.query_selector_eval(".price-after-coupon", "el => el.innerText")
-            image_url = await page.query_selector_eval(".product-main-image img", "img => img.src")
-            product_link = await page.url
+            # Gestisci affiliate link come già fai...
 
-            if "amazon.com" not in product_link:
-                continue
-
-            if "tag=" not in product_link:
-                separator = "&" if "?" in product_link else "?"
-                affiliate_link = f"{product_link}{separator}tag={AFFILIATE_TAG}"
-            else:
-                affiliate_link = product_link
-
-            if is_already_posted(affiliate_link):
-                continue
-
-            try:
-                promo_code = await page.query_selector_eval(".coupon-code", "el => el.innerText")
-                promo_code_text = f"\n🔖 Promo code: {promo_code.strip()}"
-            except:
-                promo_code_text = ""
+            # Controlli già esistenti...
 
             offer = {
                 "title": title.strip(),
                 "full_price": full_price.strip(),
                 "discounted_price": discounted_price.strip(),
                 "image_url": image_url,
-                "affiliate_link": affiliate_link,
-                "promo_code_text": promo_code_text,
+                "affiliate_link": product_link,
+                # altri campi...
             }
-
             offers.append(offer)
 
             if len(offers) >= OFFERS_PER_POST:
                 break
-
-            await page.go_back()
-            await page.wait_for_selector(".layer", timeout=60000)
 
         except Exception as e:
             logging.warning(f"Errore parsing card: {e}")
