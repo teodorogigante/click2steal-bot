@@ -59,52 +59,23 @@ def save_as_posted(affiliate_link):
         logging.warning(f"Errore salvataggio DB: {e}")
     conn.close()
 
-# === FETCH OFFERS (French Offer) ===
 async def fetch_offers(page):
     await page.goto("https://www.myvipon.com", timeout=60000)
-    await page.wait_for_selector("div.layer", timeout=60000)
+
+    # Aspetta un elemento più stabile e non direttamente visibile (ma presente in DOM)
+    await page.wait_for_selector("div.product-list-content", timeout=60000)
 
     offer_elements = await page.query_selector_all("div.layer")
     urls = []
     for el in offer_elements:
         onclick_attr = await el.get_attribute("onclick")
         if onclick_attr:
-            # L'attributo onclick contiene la chiamata getDetail_new('url_path')
             match = re.search(r"getDetail_new\('([^']+)'", onclick_attr)
             if match:
                 url_path = match.group(1)
                 full_url = "https://www.myvipon.com" + url_path
                 urls.append(full_url)
     return urls
-
-async def fetch_offer_detail(page, url):
-    await page.goto(url, timeout=60000)
-    await page.wait_for_selector("div.product-info", timeout=60000)
-    
-    title = await page.text_content("p.product-title span")
-    price_discounted = await page.text_content("p.product-price > span:nth-child(1)")
-    price_original = await page.text_content("p.product-price > s")
-    discount_percent = await page.text_content("span.product-percent-discount")
-    image_url = await page.get_attribute("div.left-show-img img", "src")
-    amazon_link = await page.get_attribute("p.go-to-amazon a", "href")
-    
-    # Promo code (potrebbe non esserci sempre)
-    promo_code = None
-    try:
-        promo_code = await page.text_content("#coupon-container .coupon-code span")
-    except Exception:
-        promo_code = None
-    
-    return {
-        "title": title.strip() if title else "",
-        "price_discounted": price_discounted.strip() if price_discounted else "",
-        "price_original": price_original.strip() if price_original else "",
-        "discount_percent": discount_percent.strip() if discount_percent else "",
-        "image_url": image_url,
-        "amazon_link": amazon_link,
-        "promo_code": promo_code.strip() if promo_code else None
-    }
-
 # === POST TO TELEGRAM ===
 async def post_to_telegram(session, offer):
     if is_already_posted(offer["amazon_link"]):
