@@ -110,7 +110,7 @@ async def post_to_telegram(session, offer):
 async def main_loop():
     init_db()
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+      browser = await p.chromium.launch(headless=False, slow_mo=50)  
         page = await browser.new_page()
         async with aiohttp.ClientSession() as session:
             while True:
