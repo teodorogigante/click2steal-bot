@@ -176,7 +176,7 @@ def install_playwright_chromium():
         raise RuntimeError("‼️ Errore durante l'installazione di Chromium con Playwright.")
     print("✅ Installazione completata, continuo con il bot...")
 
-if name == "main":
+if __name__ == "__main__":
     os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0"
     install_playwright_chromium()
     asyncio.run(main_loop())
