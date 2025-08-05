@@ -57,64 +57,33 @@ def save_as_posted(affiliate_link):
         logging.warning(f"Errore salvataggio DB: {e}")
     conn.close()
 
-async def fetch_offers(page):
-    url = "https://www.myvipon.com"
+async def fetch_offer_detail(page, url):
     await page.goto(url, timeout=60000)
+    await page.wait_for_selector("div.product-info", timeout=60000)
     
-    # Aspetto che almeno un prodotto sia visibile (adatto al sito)
-    await page.wait_for_selector("div.layer", timeout=60000)
-
-    cards = await page.query_selector_all("div.layer")
-    offers = []
-
-    for card in cards:
-        try:
-            # Prendo titolo, immagine, link e prezzi dal DOM figlio dentro 'card'
-            title = await card.query_selector_eval(".product-info .product-title span", "el => el.innerText")
-            full_price = await card.query_selector_eval(".product-info .origin-price", "el => el.innerText")
-            discounted_price = await card.query_selector_eval(".product-info .price-after-coupon", "el => el.innerText")
-            image_url = await card.query_selector_eval("img", "img => img.src")
-            product_link = await card.query_selector_eval("a", "a => a.href")
-
-            # Controllo link amazon e aggiungo tag affiliato
-            if "amazon.com" not in product_link:
-                continue
-
-            if "tag=" not in product_link:
-                separator = "&" if "?" in product_link else "?"
-                affiliate_link = f"{product_link}{separator}tag={AFFILIATE_TAG}"
-            else:
-                affiliate_link = product_link
-
-            if is_already_posted(affiliate_link):
-                continue
-
-            # Promo code, se c’è
-            try:
-                promo_code = await card.query_selector_eval(".coupon-code", "el => el.innerText")
-                promo_code_text = f"\n🔖 Promo code: {promo_code.strip()}"
-            except:
-                promo_code_text = ""
-
-            offer = {
-                "title": title.strip(),
-                "full_price": full_price.strip(),
-                "discounted_price": discounted_price.strip(),
-                "image_url": image_url,
-                "affiliate_link": affiliate_link,
-                "promo_code_text": promo_code_text,
-            }
-
-            offers.append(offer)
-
-            if len(offers) >= OFFERS_PER_POST:
-                break
-
-        except Exception as e:
-            logging.warning(f"Errore parsing card: {e}")
-            continue
-
-    return offers
+    title = await page.text_content("p.product-title span")
+    price_discounted = await page.text_content("p.product-price > span:nth-child(1)")
+    price_original = await page.text_content("p.product-price > s")
+    discount_percent = await page.text_content("span.product-percent-discount")
+    image_url = await page.get_attribute("div.left-show-img img", "src")
+    amazon_link = await page.get_attribute("p.go-to-amazon a", "href")
+    
+    # Promo code potrebbe non esserci sempre
+    promo_code = None
+    try:
+        promo_code = await page.text_content("#coupon-container .coupon-code span")
+    except Exception:
+        promo_code = None
+    
+    return {
+        "title": title.strip() if title else "",
+        "price_discounted": price_discounted.strip() if price_discounted else "",
+        "price_original": price_original.strip() if price_original else "",
+        "discount_percent": discount_percent.strip() if discount_percent else "",
+        "image_url": image_url,
+        "amazon_link": amazon_link,
+        "promo_code": promo_code.strip() if promo_code else None
+    }
 
 async def post_to_telegram(session, offer):
     message = f"""🛒 <b>{offer['title']}</b>
