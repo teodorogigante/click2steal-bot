@@ -1,13 +1,17 @@
 import subprocess
 
 def install_playwright_browsers():
-    print("Installazione browser Playwright in corso...")
+    print("▶️ Inizio installazione browser Chromium con Playwright...")
     result = subprocess.run(["playwright", "install", "chromium"], capture_output=True, text=True)
-    print("Output install:", result.stdout)
-    print("Errori install:", result.stderr)
+    
+    print(f"✅ Output install: {result.stdout.strip()}")
+    print(f"❌ Errori install: {result.stderr.strip()}")
+    print(f"📦 Codice uscita: {result.returncode}")
+    
+    if result.returncode != 0:
+        raise RuntimeError("‼️ Errore durante l'installazione di Chromium con Playwright.")
 
 install_playwright_browsers()
-
 
 import re
 import asyncio
