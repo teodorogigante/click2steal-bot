@@ -1,3 +1,23 @@
+import os
+import subprocess
+
+# Forza l'uso della cache interna di Render (o Replit)
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0"
+
+def install_playwright_chromium():
+    print("▶️ Avvio installazione di Chromium con Playwright...")
+    result = subprocess.run(["playwright", "install", "chromium"], capture_output=True, text=True)
+
+    print("✅ Output install:", result.stdout.strip() or "(nessun output)")
+    print("❌ Errori install:", result.stderr.strip() or "(nessun errore)")
+    print("📦 Codice uscita:", result.returncode)
+
+    if result.returncode != 0:
+        raise RuntimeError("‼️ Errore durante l'installazione di Chromium con Playwright.")
+
+    print("✅ Installazione completata, continuo con il bot...")
+
+install_playwright_chromium()
 import subprocess
 
 def install_playwright_browsers():
