@@ -16,7 +16,7 @@ def install_playwright_chromium():
 
     print("✅ Installazione completata, continuo con il bot...")
 
-if name == "main":
+if __name__ == "__main__":
     install_playwright_chromium()
 
 import re
