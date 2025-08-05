@@ -58,19 +58,23 @@ def save_as_posted(affiliate_link):
     conn.close()
 
 async def fetch_offers(page):
-    await page.goto("https://myvipon.com", timeout=60000)  # correggi qui se vuoi myvipon.com
-    await page.wait_for_selector(".product-category.clearfix", timeout=60000)
+    await page.goto("https://www.myvipon.com", timeout=60000)
+    await page.wait_for_selector(".layer", timeout=60000)
 
-    cards = await page.query_selector_all(".product-category.clearfix")
+    cards = await page.query_selector_all(".layer")
     offers = []
 
     for card in cards:
         try:
-            title = await card.query_selector_eval(".product-title", "el => el.innerText")
-            full_price = await card.query_selector_eval(".origin-price", "el => el.innerText")
-            discounted_price = await card.query_selector_eval(".price-after-coupon", "el => el.innerText")
-            image_url = await card.query_selector_eval("img", "img => img.src")
-            product_link = await card.query_selector_eval("a", "a => a.href")
+            # Naviga nel dettaglio del prodotto cliccando sul layer
+            await card.click()
+            await page.wait_for_load_state("load")
+
+            title = await page.query_selector_eval(".product-title span", "el => el.innerText")
+            full_price = await page.query_selector_eval(".origin-price", "el => el.innerText")
+            discounted_price = await page.query_selector_eval(".price-after-coupon", "el => el.innerText")
+            image_url = await page.query_selector_eval(".product-main-image img", "img => img.src")
+            product_link = await page.url
 
             if "amazon.com" not in product_link:
                 continue
@@ -84,9 +88,8 @@ async def fetch_offers(page):
             if is_already_posted(affiliate_link):
                 continue
 
-            # Promo code (se presente)
             try:
-                promo_code = await card.query_selector_eval(".coupon-code", "el => el.innerText")
+                promo_code = await page.query_selector_eval(".coupon-code", "el => el.innerText")
                 promo_code_text = f"\n🔖 Promo code: {promo_code.strip()}"
             except:
                 promo_code_text = ""
@@ -104,6 +107,9 @@ async def fetch_offers(page):
 
             if len(offers) >= OFFERS_PER_POST:
                 break
+
+            await page.go_back()
+            await page.wait_for_selector(".layer", timeout=60000)
 
         except Exception as e:
             logging.warning(f"Errore parsing card: {e}")
