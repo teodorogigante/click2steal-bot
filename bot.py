@@ -110,18 +110,17 @@ async def post_to_telegram(session, offer):
 async def main_loop():
     init_db()
     async with async_playwright() as p:
-      browser = await p.chromium.launch(headless=False, slow_mo=50)  
+        browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         async with aiohttp.ClientSession() as session:
             while True:
                 try:
                     logging.info("Cerco nuove offerte...")
-                    offer_urls = await fetch_offers(page)
-                    if offer_urls:
-                        for url in offer_urls:
-                            details = await fetch_offer_detail(page, url)
-                            await post_to_telegram(session, details)
-                            await asyncio.sleep(2)  # pausa tra i post
+                    offers = await fetch_offers(page)
+                    if offers:
+                        for offer in offers:
+                            await post_to_telegram(session, offer)
+                            await asyncio.sleep(2)
                     else:
                         logging.info("Nessuna nuova offerta trovata.")
                 except Exception as e:
@@ -129,6 +128,3 @@ async def main_loop():
 
                 logging.info(f"Attendo {POST_INTERVAL} secondi...")
                 await asyncio.sleep(POST_INTERVAL)
-
-if __name__ == "__main__":
-    asyncio.run(main_loop())
